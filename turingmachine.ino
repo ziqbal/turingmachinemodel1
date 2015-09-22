@@ -24,7 +24,7 @@ buttonRunStopPin = 10
 
 /***********************************************************************\
 * turingmachine [Release tm1.2.ino] (C)2015 Zafar Iqbal < mail@zaf.io > *
-* BUILD Sun, 13 Sep 2015 16:40:45 +0000                                 *
+* BUILD Mon, 21 Sep 2015 17:16:28 +0000                                 *
 * This software is free for personal/educational use.                   *
 * If you make/offer a hardware kit using this software,                 *
 * please show your appreciation and make a donation by                  *
@@ -38,7 +38,7 @@ buttonRunStopPin = 10
 
 /* vars */
 
-int _vars_speedVal;
+int _vars_speedVal=0;
 unsigned long _vars_frame = 0 ;
 //unsigned int _vars_frameHeartbeatTrigger = 50000 ;
 unsigned int _vars_frameHeartbeatTrigger = 10000 ;
@@ -145,6 +145,11 @@ void _broadcast_broadcast_enable_broadcast_( ) {
 	_broadcast_wakeup( ) ;
 }
 /* Macro End ( _macroDisabled false ) */
+/* Macro Start ( _macroLog */
+void _broadcast_log( String msg ) {
+	_serial_transmit( F( "_broadcast_" ) , msg ) ;
+}
+/* Macro End ( _macroLog ) */
 	byte _broadcast_queue1[ 60 ] = { 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 } ;
 byte _broadcast_msgid1 ;
 byte _broadcast_pointer1 = 0 ;
@@ -895,7 +900,7 @@ _broadcast_Counter = 0 ;
 			continue;	
 		}
 		if( _broadcast_msgid2 == 16) {
-			_sfx_broadcast_reset( ) ; _stackSettings_broadcast_reset( ) ; _stateSelectkey_broadcast_reset( ) ; _stateSelectval_broadcast_reset( ) ; _stackEditrun_broadcast_reset( ) ; _stateEdit_broadcast_reset( ) ; _stateRun_broadcast_reset( ) ; _stackProg_broadcast_reset( ) ; _stateSelectline_broadcast_reset( ) ; _stateSelectcurrentsymbol_broadcast_reset( ) ;
+			_sfx_broadcast_reset( ) ; _stackSettings_broadcast_reset( ) ; _stateSelectkey_broadcast_reset( ) ; _stateSelectval_broadcast_reset( ) ; _stackEditrun_broadcast_reset( ) ; _stateEdit_broadcast_reset( ) ; _stateRun_broadcast_reset( ) ; _stackProg_broadcast_reset( ) ; _stateSelectline_broadcast_reset( ) ; _stateSelectcurrentsymbol_broadcast_reset( ) ; _main_broadcast_reset( ) ;
 			continue;	
 		}
 		if( _broadcast_msgid2 == 17) {
@@ -1186,7 +1191,7 @@ void _display_log( String msg ) {
 #define _display_PIXEL_COUNT	24
 Adafruit_NeoPixel _display_strip = Adafruit_NeoPixel( 24 , _display_PIXEL_PIN , NEO_GRB + NEO_KHZ800 ) ;
 boolean _display_toggle = false ;
-uint32_t _display_colours[ 8 ] = {
+uint32_t _display_colours[ 9 ] = {
 	_display_strip.Color( 0 , 0 , 0 ) ,
 	_display_strip.Color( 255 , 255 , 255 ) ,
 	_display_strip.Color( 255 , 0 , 0 ) ,
@@ -1195,7 +1200,8 @@ uint32_t _display_colours[ 8 ] = {
 	_display_strip.Color( 0 , 255 , 255 ) ,
 	_display_strip.Color( 255 , 0 , 255 ) ,
 	//_display_strip.Color( 255 , 255 , 0 ) 
-	_display_strip.Color( 255 , 255 , 0 ) 
+	_display_strip.Color( 255 , 255 , 0 ) , 
+	_display_strip.Color( 64 , 64 , 0 ) 
 } ;
 /*
 uint32_t _display_colours[ 8 ] = {
@@ -1240,15 +1246,19 @@ void _display_clear( ) {
 }
 void _display_pattern1( ) {
 	for( byte i = 0 ; i<24;i++){
-		_display_setpixel( i , 7 ) ;
+		if( ( i % 3 ) == 0 ) {
+			_display_setpixel( i , 7 ) ;
+		} else {
+			_display_setpixel( i , 8 ) ;
+		}
 	}
 }
 void _display_pattern2( ) {
 	for( byte i = 0 ; i<24;i++){
-		if(i==6 || i==(18)){
-		_display_setpixel( i , 0 ) ;
-		}else{
-		_display_setpixel( i , 7 ) ;
+		if( ( i % 3 ) == 0 ) {
+			_display_setpixel( i , 8 ) ;
+		} else {
+			_display_setpixel( i , 7 ) ;
 		}
 	}
 }
@@ -1385,6 +1395,7 @@ void _sfx_broadcast_beep( ){
 }
 void _sfx_play( int freq , int duration ) {
 	if( _sfx_disabled ) return ;
+	noTone( _sfx_pin ) ;
 	tone( _sfx_pin , freq , duration ) ;
 }
 void _sfx_setup( ) {
@@ -1623,7 +1634,6 @@ byte _stackEditrun_state = 0 ;
 byte _stackEditrun_stateLast = 255 ; 
 void _stackEditrun_broadcast_buttonRunStopPin( ) {
 	if( _stackEditrun_disabled ) return ;
-	_broadcast_( F("stackEditrun") ,  F( "disable_state" ) ) ;
 	_stackEditrun_state++ ;
 	if( _stackEditrun_state == 2 ) _stackEditrun_state = 0 ;
 }
@@ -1641,6 +1651,7 @@ void _stackEditrun_loop( ) {
 	//////
 	//_stackEditrun_log( String(_stackEditrun_state) ) ;
 	if( _stackEditrun_state != _stackEditrun_stateLast ) {
+		_broadcast_( F("stackEditrun") ,  F( "disable_state" ) ) ;
 		//_broadcast_( F("stackEditrun") ,  F( "disable_state" ) ) ;
 		// _stackEditrun_log( String(_stackEditrun_state) ) ;
 		if( _stackEditrun_state == 0 ) {
@@ -1703,9 +1714,7 @@ void _stateEdit_tapeset( byte p , byte s ) {
 	_stateEdit_tapeupdated = true ;
 }
 void _stateEdit_broadcast_buttonLeftPin( ) {
-	//return;
-	if( _stateEdit_disabled ) return;
-	//_stateEdit_log("HEY???");
+	if( _stateEdit_disabled ) return; 
 	if( _stateEdit_cursor == 0 ){
 		_stateEdit_cursor = 23 ;
 	}else{
@@ -1779,7 +1788,7 @@ void _stateRun_log( String msg ) {
 /* Macro End ( _macroLog ) */
 //char _stateRun_instructions[ 61 ] = "000111011100000000000000000000000000000000000000000000000000" ;
 //char _stateRun_instructions[ 721 ] = "100111011100000000000000000000000000000000000000000000000000" ;
-char _stateRun_instructions[ 362 ] = "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
+char _stateRun_instructions[ 376 ] = "010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410";
 //Chomper
 //char _stateRun_instructions[ 721 ] = "00~0~101~0~0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
 //char _stateRun_instructions[ 721 ] = "00~0~101~0~0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
@@ -1977,13 +1986,24 @@ byte _stateRun_getnextsymbol( byte currentsymbol ) {
 		return( _stateRun_instructions[ _stateRun_pointer + rel ] ) ;
 }
 bool _stateRun_stateused( int line ) {
+	// FIXME TODO Make this more manageable
+	// 010110210310410
 	int pointer = line * 15 ;
-	for( int i = 0 ; i < 16 ; i++ ) {
-		if( _stateRun_instructions[ pointer + i ] != '0' ){
-			//_stateRun_log(String(i)+" "+_stateRun_instructions[ pointer + i ]);
-			return( true ) ;
-		}
-	}
+	if( _stateRun_instructions[ pointer + 0 ] != '0' ) return( true ) ;
+	if( _stateRun_instructions[ pointer + 1 ] != '1' ) return( true ) ;
+	if( _stateRun_instructions[ pointer + 2 ] != '0' ) return( true ) ;
+	if( _stateRun_instructions[ pointer + 3 ] != '1' ) return( true ) ;
+	if( _stateRun_instructions[ pointer + 4 ] != '1' ) return( true ) ;
+	if( _stateRun_instructions[ pointer + 5 ] != '0' ) return( true ) ;
+	if( _stateRun_instructions[ pointer + 6 ] != '2' ) return( true ) ;
+	if( _stateRun_instructions[ pointer + 7 ] != '1' ) return( true ) ;
+	if( _stateRun_instructions[ pointer + 8 ] != '0' ) return( true ) ;
+	if( _stateRun_instructions[ pointer + 9 ] != '3' ) return( true ) ;
+	if( _stateRun_instructions[ pointer + 10 ] != '1' ) return( true ) ;
+	if( _stateRun_instructions[ pointer + 11 ] != '0' ) return( true ) ;
+	if( _stateRun_instructions[ pointer + 12 ] != '4' ) return( true ) ;
+	if( _stateRun_instructions[ pointer + 13 ] != '1' ) return( true ) ;
+	if( _stateRun_instructions[ pointer + 14 ] != '0' ) return( true ) ;
 	return( false) ;
 }
 byte _stateRun_getnextdir( byte currentsymbol ) {
@@ -2025,40 +2045,14 @@ void _stateRun_right( ) {
 void _stateRun_broadcast_buttonTogglePin( ) {
 	if( _stateRun_disabled ) return;
 	_stateRun_flagToggle = true ;
-/*
-	byte y = _stateEdit_tapeget(_stateEdit_cursor) + 1 ;
-	if( y == 5 ) y = 0 ;
-	_stateEdit_tapeset( _stateEdit_cursor , y ) ;	
-*/
-/*
-	int rel = _stateRun_line * 15 + ( 3 * _stateEdit_tapeget( _stateEdit_cursor ) ) + _stateRun_pointer ;
-	//byte nextdir = _stateRun_getnextdir( tv ) ;
-	byte x = _stateRun_instructions[ rel + 1 ] ;
-	if( x == '0' ) _stateRun_left( ) ;
-	if( x == '1' ) _stateRun_right( ) ;
-	x = _stateRun_instructions[ rel + 2 ] ; 
-	if( x != '~' ) _stateRun_line = x - 48 ;		
-*/
-	//_stateRun_log("xxx");
-	// FIXME TODO
-	/*
-	if(_stateEdit_tapeget(_stateEdit_cursor)==0){
-		_stateEdit_tapeset(_stateEdit_cursor,1);
-	}else{
-		_stateEdit_tapeset(_stateEdit_cursor,0);
-	}
-	_cursor_dehighlight();
-	_stateEdit_tapeupdated = true;
-	*/
 }
 void _stateRun_broadcast_runResetLine( ) {
 	_stateRun_line = 0 ;
 }
 void _stateRun_broadcast_reset( ) {
+	 strcpy( _stateRun_instructions , "010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410");
+//	_stateRun_instructions = "010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410010110210310410";
 	_stateRun_line = 0 ;
-	for(int i=0;i<362;i++){
-	_stateRun_instructions[i]= '0';
-	}
 }
 void _stateRun_setup( ) {
 }
@@ -2312,7 +2306,9 @@ if ( ++_stateSelectcurrentsymbol_Counter < _stateSelectcurrentsymbol_Trigger ) r
 _stateSelectcurrentsymbol_Counter = 0 ;
 /* Macro Start ( _macroTrigger 100 ) */
 	//////
-	_display_pattern2( ) ;
+	_display_pattern1( ) ;
+	_display_setpixel(  6 ,  0 ) ;
+	_display_setpixel(  24 - 6 ,  0 ) ;
 	_display_currentsymbols( ) ;
 	_display_nextsymbols( ) ;
 	byte line = _stateSelectline_cursor  ;
@@ -2426,7 +2422,9 @@ if ( ++_stateSelectnextsymbol_Counter < _stateSelectnextsymbol_Trigger ) return 
 _stateSelectnextsymbol_Counter = 0 ;
 /* Macro Start ( _macroTrigger 100 ) */
 	//////
-	_display_pattern2( ) ;
+	_display_pattern1( ) ;
+	_display_setpixel(  6 ,  0 ) ;
+	_display_setpixel(  24 - 6 ,  0 ) ;	
 	_display_nextsymbols( ) ;
 	byte line = _stateSelectline_cursor  ;
 	byte currentsymbol = _stateSelectcurrentsymbol_cursor ;
@@ -2450,7 +2448,7 @@ _stateSelectnextsymbol_Counter = 0 ;
 	byte nextsymbol = _stateRun_instructions[pointer]-48;
 	byte pos = 14 - nextsymbol ;
 	//_display_togglepixel( currentsymbol ,5);
-	_display_togglepixel( pos ,5);
+	//_display_togglepixel( pos ,5);
 	byte nextdir = _stateRun_instructions[pointer+1];
 	if(nextdir=='0') _display_togglepixel( 18 ,5);
 	if(nextdir=='1') _display_togglepixel( 6 ,5);	
@@ -2533,7 +2531,9 @@ if ( ++_stateSelectdir_Counter < _stateSelectdir_Trigger ) return ;
 _stateSelectdir_Counter = 0 ;
 /* Macro Start ( _macroTrigger 100 ) */
 	//////
-	_display_pattern2( ) ;
+	_display_pattern1( ) ;
+	_display_setpixel(  6 ,  0 ) ;
+	_display_setpixel(  24 - 6 ,  0 ) ;	
 	_display_nextsymbols( ) ;	
 	byte currentsymbol = _stateSelectcurrentsymbol_cursor ;
 	byte nextsymbol = _stateSelectnextsymbol_cursor ;
@@ -2569,10 +2569,10 @@ _stateSelectdir_Counter = 0 ;
 		}
 	} else {
 		if( _stateSelectdir_cursor != 255 ) {
-			_display_setpixel( _stateSelectdir_cursor ,  5 ) ;
+			//_display_setpixel( _stateSelectdir_cursor ,  5 ) ;
 		}else{
-			_display_setpixel( 6 ,  5 ) ;
-			_display_setpixel( 24-6,  5 ) ;
+			//_display_setpixel( 6 ,  5 ) ;
+			//_display_setpixel( 24-6,  5 ) ;
 		}
 		//_display_setpixel( _stateSelectdir_cursor ,  7  ) ;
 	}	
@@ -2639,7 +2639,7 @@ if ( ++_stateSelectjump_Counter < _stateSelectjump_Trigger ) return ;
 _stateSelectjump_Counter = 0 ;
 /* Macro Start ( _macroTrigger 100 ) */
 	//////
-	_display_pattern1( ) ;
+	_display_pattern2( ) ;
 	_display_setpixel( _stateSelectline_cursor ,  5 ) ;
 	if( _cursor_toggle ) {
 		_display_setpixel( _stateSelectjump_cursor ,  _cursor_col  ) ;
@@ -2748,6 +2748,13 @@ void _main_broadcast_codeupdate( ) {
 	_main_log(cmd);
 	*/
 }
+void _main_broadcast_reset( ){
+	_broadcast_( F("main") ,  F( "disable_state" ) ) ;
+	_broadcast_( F("main") ,  F( "disable_stack" ) ) ;
+	_broadcast_( F("main") ,  F( "enable_stackEditrun" ) ) ;
+	//FIXME TODO
+	_stackEditrun_stateLast=255;
+}
 void _main_broadcast_stackeditrun( ){
 	_broadcast_( F("main") ,  F( "disable_state" ) ) ;
 	_broadcast_( F("main") ,  F( "disable_stack" ) ) ;
@@ -2786,15 +2793,13 @@ if ( ++_main_Counter < _main_Trigger ) return ;
 _main_Counter = 0 ;
 /* Macro Start ( _macroTrigger 100 ) */
 	//////
+	_vars_speedVal = map( analogRead( A7 ) , 0  , 1023 , 1023 , 0 );	
 /*
 	if(_stateRun_stateused( 10 )){
-		_main_log("!!!!");
+		_main_log("!!!!"+String(_vars_speedVal));
 		return;
 	}
 */
-	//_vars_speedVal = map( analogRead( A7 ) , 0 , 1023 , 1 , 25 ) ;	
-	//_vars_speedVal = map( analogRead( A7 ) , 0 , 1023 , 500 , 0 ) ;	
-		_vars_speedVal = 1024 - analogRead( A7 ) ;
 		//_main_log("tick"+String(_button_tickbuttonLeftPin));
 	if(
 		( _button_tickbuttonLeftPin == 200 )
@@ -2812,6 +2817,22 @@ _main_Counter = 0 ;
 		_button_tickbuttonRightPin = 0 ;
 		_button_tickbuttonTogglePin = 0 ;
 		_button_tickbuttonRunStopPin = 0 ;
+		return;
+	}
+	if(
+		( _button_tickbuttonRunStopPin == 200 )
+	) {
+		// FIXME TODO Adding one will stop the if triggering over and over, maybe use constant?
+		_button_tickbuttonRunStopPin = 200 + 1 ;
+		//_main_log("tick");
+		_main_stack++ ;
+		if( _main_stack > 1 ) {
+			_stackEditrun_state = 0 ;
+			_main_stack = 0 ;
+		}
+		_main_stackLast = 255 ;
+		//_button_tickbuttonRunStopPin = 0 ;
+		return ;
 	}
 	if(
 		( _button_tickbuttonLeftPin == 200 )
@@ -2819,26 +2840,22 @@ _main_Counter = 0 ;
 		( _button_tickbuttonRightPin == 200 )
 	) {
 		//_main_log("tick");
-		_main_stack++ ;
-		if( _main_stack > 1 ) {
-			_main_stack = 0 ;
-		}
-		_main_stackLast = 255 ;
-		_button_tickbuttonLeftPin = 0 ;
-		_button_tickbuttonRightPin = 0 ;
-	}
-	if(
-		( _button_tickbuttonTogglePin == 200 )
-		&&
-		( _button_tickbuttonRunStopPin == 200 )
-	) {
-		//_main_log("tick");
 		_broadcast_( F("main") ,  F( "reset" ) ) ;
 		_main_stack = 0 ;
 		_main_stackLast = 255 ;
-		_button_tickbuttonTogglePin = 0 ;
-		_button_tickbuttonRunStopPin = 0 ;
+		//_button_tickbuttonTogglePin = 0 ;
+		//_button_tickbuttonRunStopPin = 0 ;
+		return;
 	}
+	if(
+		 _button_tickbuttonTogglePin == 200 
+	) {
+		_broadcast_( F("main") ,  F( "beep" ) ) ;
+		_stateEdit_tapeclear( ) ;
+		//_button_tickbuttonTogglePin = 0 ;
+		return ;
+	}
+	/////////////////////////////////
 	if( _main_stack == 0 ) {
 		if( _main_stackLast != _main_stack ) _broadcast_( F("main") ,  F( "stackeditrun" ) ) ;
 		_main_stackLast = _main_stack ;
