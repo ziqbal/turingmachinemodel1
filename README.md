@@ -19,4 +19,4 @@ buttonRunStopPin = 10
 
 
 
-http://zaf.io/page-ae.html
+http://zaf.io/
